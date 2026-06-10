@@ -1,0 +1,1019 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: TeliTask Pro API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: tasks
+    description: Task management
+  - name: completions
+    description: Task completions
+  - name: withdrawals
+    description: Withdrawal management
+  - name: notifications
+    description: Notifications
+  - name: uploads
+    description: File uploads
+  - name: dashboard
+    description: Dashboard data
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/telegram:
+    post:
+      operationId: telegramLogin
+      tags: [auth]
+      summary: Login or register with Telegram initData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramLoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "401":
+          description: Invalid initData
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResult"
+
+  /users/{id}:
+    get:
+      operationId: getUserById
+      tags: [users]
+      summary: Get user by ID (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+
+  /users/{id}/ban:
+    patch:
+      operationId: banUser
+      tags: [users]
+      summary: Ban a user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/unban:
+    patch:
+      operationId: unbanUser
+      tags: [users]
+      summary: Unban a user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User unbanned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/balance:
+    patch:
+      operationId: adjustUserBalance
+      tags: [users]
+      summary: Adjust user balance (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BalanceAdjustInput"
+      responses:
+        "200":
+          description: Balance updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - name: activeOnly
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update task (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete task (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks/{id}/complete:
+    post:
+      operationId: completeTask
+      tags: [completions]
+      summary: Submit task completion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompletionInput"
+      responses:
+        "201":
+          description: Completion submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+        "400":
+          description: Already completed or time expired
+
+  /completions/mine:
+    get:
+      operationId: listMyCompletions
+      tags: [completions]
+      summary: Get current user task history
+      responses:
+        "200":
+          description: Completions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Completion"
+
+  /completions:
+    get:
+      operationId: listAllCompletions
+      tags: [completions]
+      summary: List all completions (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        "200":
+          description: Completions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletionListResult"
+
+  /completions/{id}/approve:
+    patch:
+      operationId: approveCompletion
+      tags: [completions]
+      summary: Approve a task completion (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+
+  /completions/{id}/reject:
+    patch:
+      operationId: rejectCompletion
+      tags: [completions]
+      summary: Reject a task completion (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectionInput"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+
+  /withdrawals:
+    get:
+      operationId: listAllWithdrawals
+      tags: [withdrawals]
+      summary: List all withdrawals (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        "200":
+          description: Withdrawals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawalListResult"
+    post:
+      operationId: requestWithdrawal
+      tags: [withdrawals]
+      summary: Request a withdrawal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawalInput"
+      responses:
+        "201":
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+        "400":
+          description: Insufficient balance
+
+  /withdrawals/mine:
+    get:
+      operationId: listMyWithdrawals
+      tags: [withdrawals]
+      summary: List current user withdrawals
+      responses:
+        "200":
+          description: My withdrawals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Withdrawal"
+
+  /withdrawals/{id}/approve:
+    patch:
+      operationId: approveWithdrawal
+      tags: [withdrawals]
+      summary: Approve withdrawal (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+
+  /withdrawals/{id}/reject:
+    patch:
+      operationId: rejectWithdrawal
+      tags: [withdrawals]
+      summary: Reject withdrawal (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectionInput"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/broadcast:
+    post:
+      operationId: broadcastNotification
+      tags: [notifications]
+      summary: Send broadcast notification to all users (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastInput"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationResult"
+
+  /notifications/personal:
+    post:
+      operationId: sendPersonalNotification
+      tags: [notifications]
+      summary: Send personal notification to a specific user by Telegram ID (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonalNotifInput"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationResult"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /uploads/screenshot:
+    post:
+      operationId: uploadScreenshot
+      tags: [uploads]
+      summary: Upload a screenshot (base64) for task completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreenshotUploadInput"
+      responses:
+        "200":
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: User dashboard summary
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDashboard"
+
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [dashboard]
+      summary: Admin dashboard summary
+      responses:
+        "200":
+          description: Admin dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/group-summary:
+    get:
+      operationId: getGroupSummary
+      tags: [dashboard]
+      summary: Get Telegram group summary data
+      responses:
+        "200":
+          description: Group summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    TelegramLoginInput:
+      type: object
+      required: [initData]
+      properties:
+        initData:
+          type: string
+          description: Telegram WebApp initData string
+
+    AuthResult:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, telegramId, username, firstName, balance, isBanned, isAdmin, createdAt]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        username:
+          type: ["string", "null"]
+        firstName:
+          type: string
+        lastName:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        balance:
+          type: number
+        totalEarned:
+          type: number
+        totalWithdrawn:
+          type: number
+        completedTasksCount:
+          type: integer
+        isBanned:
+          type: boolean
+        isAdmin:
+          type: boolean
+        referralCode:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        firstName:
+          type: string
+
+    UserListResult:
+      type: object
+      required: [users, total, page, limit]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    BalanceAdjustInput:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount:
+          type: number
+          description: Positive to add, negative to subtract
+        reason:
+          type: string
+
+    Task:
+      type: object
+      required: [id, title, description, reward, timeLimitMinutes, isActive, requiresScreenshot, requiresLinkCopy, completionCount, dailyLimit, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        reward:
+          type: number
+        timeLimitMinutes:
+          type: integer
+          description: Time limit in minutes to complete the task
+        isActive:
+          type: boolean
+        requiresScreenshot:
+          type: boolean
+        requiresLinkCopy:
+          type: boolean
+        copyLink:
+          type: ["string", "null"]
+          description: Link to copy for the task
+        dailyLimit:
+          type: integer
+          description: Max completions per user per day (0 = once total)
+        completionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        userCompleted:
+          type: ["boolean", "null"]
+          description: Whether current user already completed this task
+
+    TaskInput:
+      type: object
+      required: [title, description, reward, timeLimitMinutes]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        reward:
+          type: number
+        timeLimitMinutes:
+          type: integer
+        isActive:
+          type: boolean
+        requiresScreenshot:
+          type: boolean
+        requiresLinkCopy:
+          type: boolean
+        copyLink:
+          type: string
+        dailyLimit:
+          type: integer
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        reward:
+          type: number
+        timeLimitMinutes:
+          type: integer
+        isActive:
+          type: boolean
+        requiresScreenshot:
+          type: boolean
+        requiresLinkCopy:
+          type: boolean
+        copyLink:
+          type: string
+        dailyLimit:
+          type: integer
+
+    Completion:
+      type: object
+      required: [id, userId, taskId, status, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        taskId:
+          type: integer
+        task:
+          $ref: "#/components/schemas/Task"
+        user:
+          $ref: "#/components/schemas/User"
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        screenshotUrl:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        reward:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    CompletionInput:
+      type: object
+      properties:
+        screenshotUrl:
+          type: string
+        note:
+          type: string
+
+    CompletionListResult:
+      type: object
+      required: [completions, total, page]
+      properties:
+        completions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Completion"
+        total:
+          type: integer
+        page:
+          type: integer
+
+    RejectionInput:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    Withdrawal:
+      type: object
+      required: [id, userId, amount, method, accountNumber, status, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        user:
+          $ref: "#/components/schemas/User"
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [bkash, nagad, usd]
+        accountNumber:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        rejectionReason:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    WithdrawalInput:
+      type: object
+      required: [amount, method, accountNumber]
+      properties:
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [bkash, nagad, usd]
+        accountNumber:
+          type: string
+
+    WithdrawalListResult:
+      type: object
+      required: [withdrawals, total, page]
+      properties:
+        withdrawals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Withdrawal"
+        total:
+          type: integer
+        page:
+          type: integer
+
+    Notification:
+      type: object
+      required: [id, userId, title, message, isRead, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        type:
+          type: string
+          enum: [broadcast, personal, system]
+        createdAt:
+          type: string
+          format: date-time
+
+    BroadcastInput:
+      type: object
+      required: [title, message]
+      properties:
+        title:
+          type: string
+        message:
+          type: string
+
+    PersonalNotifInput:
+      type: object
+      required: [telegramId, title, message]
+      properties:
+        telegramId:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+
+    NotificationResult:
+      type: object
+      required: [sent]
+      properties:
+        sent:
+          type: integer
+
+    ScreenshotUploadInput:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: string
+          description: Base64 encoded image data
+        filename:
+          type: string
+
+    UploadResult:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+
+    UserDashboard:
+      type: object
+      required: [user, availableTasks, todayEarned, pendingWithdrawals, unreadNotifications, recentCompletions]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        availableTasks:
+          type: integer
+        todayEarned:
+          type: number
+        pendingWithdrawals:
+          type: integer
+        unreadNotifications:
+          type: integer
+        recentCompletions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Completion"
+
+    AdminDashboard:
+      type: object
+      required: [totalUsers, todayNewUsers, totalTasks, pendingCompletions, pendingWithdrawals, totalPayout, todayCompletions]
+      properties:
+        totalUsers:
+          type: integer
+        todayNewUsers:
+          type: integer
+        totalTasks:
+          type: integer
+        pendingCompletions:
+          type: integer
+        pendingWithdrawals:
+          type: integer
+        totalPayout:
+          type: number
+        todayCompletions:
+          type: integer
+        totalEarned:
+          type: number
+
+    GroupSummary:
+      type: object
+      required: [totalUsers, todayNewUsers, completedTasks, totalPayout, lastUpdated]
+      properties:
+        totalUsers:
+          type: integer
+        todayNewUsers:
+          type: integer
+        completedTasks:
+          type: integer
+        totalPayout:
+          type: number
+        lastUpdated:
+          type: string
+          format: date-time
